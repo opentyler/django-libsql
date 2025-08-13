@@ -230,8 +230,8 @@ Most limitations from the original version have been resolved. The modern libsql
 
 ## Compatibility
 
-- Python 3.8+
-- Django 4.0+
+- Python 3.7+
+- Django 2.1+
 - libsql 0.1.0+
 
 ## Self-Hosting

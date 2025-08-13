@@ -1,26 +1,37 @@
-from setuptools import setup, find_packages
+    from setuptools import setup, find_packages
 
-with open("README.md", "r", encoding="utf-8") as fh:
-    long_description = fh.read()
+    with open("README.md", "r", encoding="utf-8") as fh:
+        long_description = fh.read()
 
 setup(
     name="django-libsql",
-    version="0.1.3",  # Increment the version number
-    author="Aaron Kazah",
-    description="A Django integration for libSQL / turso database",
-    long_description=long_description,
+    version="0.1.4",
+    description="LibSQL / Turso database backend for Django",
+    long_description=README,
     long_description_content_type="text/markdown",
+    license="MIT",
     url="https://github.com/opentyler/django-libsql",
-    packages=['django_libsql.db.backends.sqlite3'],
-    package_data={
-        'django_libsql.db.backends.sqlite3': ['*.py'],
+    project_urls={
+        "Homepage": "https://github.com/opentyler/django-libsql",
     },
+    author="OpenTyler (fork maintainer); original by Aaron Kazah",
+    python_requires=">=3.8",
+    packages=find_packages(
+        include=["django_libsql", "django_libsql.*"],
+        exclude=["testapp", "testapp.*", "scripts", "scripts.*", "tests", "tests.*"],
+    ),
+    include_package_data=True,
+    install_requires=[
+        "Django>=3.0", # Compatible with python 3.8+
+        "libsql>=0.1.0",
+    ],
     classifiers=[
-        "Development Status :: 3 - Alpha",
+        "Development Status :: 4 - Beta",
         "Intended Audience :: Developers",
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
         "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3 :: Only",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
@@ -29,8 +40,5 @@ setup(
         "Programming Language :: Python :: 3.13",
         "Framework :: Django",
     ],
-    python_requires=">=3.8",
-    install_requires=[
-        "Django>=2.1", # Requires python 2.7
-        "libsql>=0.1.0",
-    ],
+    keywords=["django", "libsql", "turso", "sqlite", "database", "backend"],
+)
