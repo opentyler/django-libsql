@@ -74,7 +74,7 @@ class SqliteDatabaseTest(TestCase):
         self.assertEqual(last_company.name, "Globex")
 
 
-class LibSQLDatabaseTest(SimpleTestCase):
+class LibSQLDatabaseTest(TestCase):
     """
     Testing that the same tests work on a libSQL database.
     """
