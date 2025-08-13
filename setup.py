@@ -1,13 +1,13 @@
-    from setuptools import setup, find_packages
+from setuptools import setup, find_packages
 
-    with open("README.md", "r", encoding="utf-8") as fh:
-        long_description = fh.read()
+with open("README.md", "r", encoding="utf-8") as fh:
+    long_description = fh.read()
 
 setup(
     name="django-libsql",
     version="0.1.4",
     description="LibSQL / Turso database backend for Django",
-    long_description=README,
+    long_description=long_description,
     long_description_content_type="text/markdown",
     license="MIT",
     url="https://github.com/opentyler/django-libsql",
