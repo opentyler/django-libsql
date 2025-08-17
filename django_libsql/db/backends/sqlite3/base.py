@@ -197,15 +197,37 @@ class LibSQLConnection:
             
         # Special handling for injected Turso credentials from turso app
         if '_turso_url' in kwargs:
-            # Use embedded replica mode with local file
-            conn_params['database'] = kwargs.get('local_file', 'local.db')
-            conn_params['sync_url'] = kwargs['_turso_url']
-            if '_turso_auth_token' in kwargs:
-                conn_params['auth_token'] = kwargs['_turso_auth_token']
+            turso_url = kwargs['_turso_url']
+            # Check if we should use direct remote connection or embedded replica
+            if kwargs.get('_turso_mode', 'remote') == 'remote':
+                # Direct remote connection (no local caching)
+                if turso_url.startswith('libsql://'):
+                    # Convert libsql:// to https:// for the actual connection
+                    parsed = urlparse(turso_url)
+                    if parsed.netloc:
+                        conn_params['database'] = f"https://{parsed.netloc}{parsed.path}"
+                else:
+                    conn_params['database'] = turso_url
+                
+                if '_turso_auth_token' in kwargs:
+                    conn_params['auth_token'] = kwargs['_turso_auth_token']
+            else:
+                # Use embedded replica mode with local file (for offline support)
+                conn_params['database'] = kwargs.get('local_file', 'local.db')
+                conn_params['sync_url'] = turso_url
+                if '_turso_auth_token' in kwargs:
+                    conn_params['auth_token'] = kwargs['_turso_auth_token']
+        
+        # Debug logging
+        import logging
+        logger = logging.getLogger('django_libsql')
+        logger.debug(f"LibSQL connection params: {conn_params}")
         
         try:
             self._connection = libsql_client.connect(**conn_params)
+            logger.debug(f"LibSQL connection successful")
         except Exception as e:
+            logger.error(f"LibSQL connection failed with params: {conn_params}")
             raise ImproperlyConfigured(f"Could not connect to libsql database: {e}")
         
         # Track transaction state
@@ -623,6 +645,8 @@ class DatabaseWrapper(BaseDatabaseWrapper):
             kwargs["_turso_url"] = settings_dict["_turso_url"]
         if "_turso_auth_token" in settings_dict:
             kwargs["_turso_auth_token"] = settings_dict["_turso_auth_token"]
+        if "_turso_mode" in settings_dict:
+            kwargs["_turso_mode"] = settings_dict["_turso_mode"]
         
         # Ignored for compatibility but included if present
         if "check_same_thread" in options:
