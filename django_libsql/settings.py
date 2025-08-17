@@ -103,7 +103,7 @@ DATABASES = {
 #        "NAME": "libsql://${your-db-name}.turso.io?authToken=${your-auth-token}",
 
         "ENGINE": "django_libsql.db.backends.sqlite3",
-        "NAME": f"libsql://localhost:8080?authToken=",
+        "NAME": "libsql://localhost:8080?authToken=",
         "TEST": {
             "ENGINE": "django_libsql.db.backends.sqlite3",
             "NAME": "libsql_test.db",
