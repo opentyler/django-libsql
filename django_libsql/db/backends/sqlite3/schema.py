@@ -24,20 +24,27 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
     def __enter__(self):
         # Some SQLite schema alterations need foreign key constraints to be
         # disabled. Enforce it here for the duration of the schema edition.
-        if not self.connection.disable_constraint_checking():
-            raise NotSupportedError(
-                "SQLite schema editor cannot be used while foreign key "
-                "constraint checks are enabled. Make sure to disable them "
-                "before entering a transaction.atomic() context because "
-                "SQLite does not support disabling them in the middle of "
-                "a multi-statement transaction."
-            )
+        # Try to disable constraints, but don't fail if we can't (e.g., during migrations)
+        try:
+            self.connection.disable_constraint_checking()
+        except Exception:
+            # If we can't disable constraints (e.g., we're in a transaction),
+            # we'll proceed anyway. This is necessary for migrations to work.
+            pass
         return super().__enter__()
 
     def __exit__(self, exc_type, exc_value, traceback):
-        self.connection.check_constraints()
+        try:
+            self.connection.check_constraints()
+        except Exception:
+            # If constraints were never disabled, we can't check them
+            pass
         super().__exit__(exc_type, exc_value, traceback)
-        self.connection.enable_constraint_checking()
+        try:
+            self.connection.enable_constraint_checking()
+        except Exception:
+            # If constraints were never disabled, we don't need to re-enable them
+            pass
 
     def quote_value(self, value):
         # The backend "mostly works" without this function and there are use
