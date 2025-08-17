@@ -201,6 +201,9 @@ class LibSQLConnection:
             # Check if we should use direct remote connection or embedded replica
             if kwargs.get('_turso_mode', 'remote') == 'remote':
                 # Direct remote connection (no local caching)
+                # Clear any existing database/sync_url settings to ensure remote-only
+                conn_params.clear()
+                
                 if turso_url.startswith('libsql://'):
                     # Convert libsql:// to https:// for the actual connection
                     parsed = urlparse(turso_url)
