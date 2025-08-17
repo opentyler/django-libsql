@@ -266,26 +266,69 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
         apps = Apps()
 
         # Work out the new value of unique_together, taking renames into
-        # account
-        unique_together = [
-            [rename_mapping.get(n, n) for n in unique]
-            for unique in model._meta.unique_together
-        ]
+        # account. Handle Django 5.1+ where unique_together is removed
+        unique_together_raw = getattr(model._meta, 'unique_together', None)
+        if unique_together_raw:
+            unique_together = [
+                [rename_mapping.get(n, n) for n in unique]
+                for unique in unique_together_raw
+            ]
+        else:
+            unique_together = []
 
         # Work out the new value for index_together, taking renames into
-        # account
-        index_together = [
-            [rename_mapping.get(n, n) for n in index]
-            for index in model._meta.index_together
-        ]
+        # account. Handle Django 5.1+ where index_together is removed
+        index_together_raw = getattr(model._meta, 'index_together', None)
+        if index_together_raw:
+            index_together = [
+                [rename_mapping.get(n, n) for n in index]
+                for index in index_together_raw
+            ]
+        else:
+            index_together = []
 
-        indexes = model._meta.indexes
+        # Handle indexes - update field names in Index objects for renames
+        indexes = []
+        for index in getattr(model._meta, 'indexes', []):
+            if hasattr(index, 'fields') and index.fields:
+                # Create a new index with renamed fields
+                new_fields = [rename_mapping.get(f, f) for f in index.fields]
+                # Clone the index with new fields
+                from django.db.models import Index
+                new_index = Index(
+                    fields=new_fields,
+                    name=index.name if hasattr(index, 'name') else None
+                )
+                # Copy other attributes if they exist
+                for attr in ['condition', 'include', 'opclasses', 'db_tablespace']:
+                    if hasattr(index, attr):
+                        setattr(new_index, attr, getattr(index, attr))
+                indexes.append(new_index)
+            else:
+                indexes.append(index)
         if delete_field:
             indexes = [
                 index for index in indexes if delete_field.name not in index.fields
             ]
 
-        constraints = list(model._meta.constraints)
+        # Handle constraints - update field names in UniqueConstraint objects for renames
+        constraints = []
+        for constraint in getattr(model._meta, 'constraints', []):
+            from django.db.models import UniqueConstraint
+            if isinstance(constraint, UniqueConstraint) and hasattr(constraint, 'fields') and constraint.fields:
+                # Create a new constraint with renamed fields
+                new_fields = [rename_mapping.get(f, f) for f in constraint.fields]
+                new_constraint = UniqueConstraint(
+                    fields=new_fields,
+                    name=constraint.name
+                )
+                # Copy other attributes if they exist
+                for attr in ['condition', 'deferrable', 'include', 'opclasses', 'violation_error_code', 'violation_error_message']:
+                    if hasattr(constraint, attr):
+                        setattr(new_constraint, attr, getattr(constraint, attr))
+                constraints.append(new_constraint)
+            else:
+                constraints.append(constraint)
 
         # Provide isolated instances of the fields to the new model body so
         # that the existing model's internals aren't interfered with when
@@ -300,12 +343,15 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
         meta_contents = {
             "app_label": model._meta.app_label,
             "db_table": model._meta.db_table,
-            "unique_together": unique_together,
-            "index_together": index_together,
             "indexes": indexes,
             "constraints": constraints,
             "apps": apps,
         }
+        # Only add deprecated options if they exist and are non-empty
+        if unique_together:
+            meta_contents["unique_together"] = unique_together
+        if index_together:
+            meta_contents["index_together"] = index_together
         meta = type("Meta", (), meta_contents)
         body_copy["Meta"] = meta
         body_copy["__module__"] = model.__module__
@@ -316,12 +362,15 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
         meta_contents = {
             "app_label": model._meta.app_label,
             "db_table": "new__%s" % strip_quotes(model._meta.db_table),
-            "unique_together": unique_together,
-            "index_together": index_together,
             "indexes": indexes,
             "constraints": constraints,
             "apps": apps,
         }
+        # Only add deprecated options if they exist and are non-empty
+        if unique_together:
+            meta_contents["unique_together"] = unique_together
+        if index_together:
+            meta_contents["index_together"] = index_together
         meta = type("Meta", (), meta_contents)
         body_copy["Meta"] = meta
         body_copy["__module__"] = model.__module__
