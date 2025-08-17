@@ -99,11 +99,11 @@ DATABASES = {
         "NAME": BASE_DIR / "db.sqlite3",
     },
     "libsql": {
+#        "ENGINE": "django_libsql.db.backends.sqlite3",
+#        "NAME": "libsql://${your-db-name}.turso.io?authToken=${your-auth-token}",
+
         "ENGINE": "django_libsql.db.backends.sqlite3",
-        # Use local file for testing since remote connection is failing
-        "NAME": "libsql_test.db",
-        # For production, use the remote URL:
-        # "NAME": f"ws://localhost:8080?authToken={token}",
+        "NAME": f"libsql://localhost:8080?authToken=",
         "TEST": {
             "ENGINE": "django_libsql.db.backends.sqlite3",
             "NAME": "libsql_test.db",
